@@ -1,0 +1,41 @@
+{
+  "name": "prose_version_grei",
+  "description": "A clean text-focused microblog theme for Ghost 6",
+  "version": "3.0.0",
+  "engines": { "ghost": ">=6.0.0" },
+  "license": "MIT",
+  "author": { "email": "hello@example.com" },
+  "config": {
+    "posts_per_page": 20,
+    "card_assets": true,
+    "image_sizes": {
+      "xs": { "width": 150 },
+      "s":  { "width": 400 },
+      "m":  { "width": 720 },
+      "l":  { "width": 1200 }
+    },
+    "custom": {
+      "content_width": {
+        "type": "select",
+        "options": ["520px", "640px", "920px"],
+        "default": "640px"
+      },
+      "show_reading_time": {
+        "type": "boolean",
+        "default": true
+      },
+      "show_author_box": {
+        "type": "boolean",
+        "default": true
+      },
+      "show_tags": {
+        "type": "boolean",
+        "default": true
+      },
+      "footer_text": {
+        "type": "text",
+        "default": ""
+      }
+    }
+  }
+}

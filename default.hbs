@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="{{@site.locale}}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{meta_title}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap">
+  <link rel="stylesheet" href="{{asset "css/prose.css"}}">
+  {{ghost_head}}
+  {{#match @custom.content_width "520px"}}<meta name="prose-width" content="520px">{{/match}}
+  {{#match @custom.content_width "640px"}}<meta name="prose-width" content="640px">{{/match}}
+  {{#match @custom.content_width "920px"}}<meta name="prose-width" content="920px">{{/match}}
+</head>
+<body class="{{body_class}}">
+
+<div id="reading-progress"></div>
+
+<div class="site">
+  <header class="gh-head">
+    <div class="container gh-head-inner">
+      <div class="gh-head-brand">
+        <a class="gh-head-logo" href="{{@site.url}}">{{@site.title}}</a>
+        <button class="gh-burger" aria-label="Menu"></button>
+      </div>
+    <div class="gh-head-brand">
+        <img class="rounded-avatar" src="/assets/img/avatar.jpg" alt="autor of this website">
+	</div>
+      <nav class="gh-head-menu" aria-label="Navigation">
+        {{navigation}}
+        {{#if @site.members_enabled}}
+          {{#unless @member}}
+            <a href="#/portal/signup" class="gh-subscribe-btn" data-portal="signup">Subscribe</a>
+          {{/unless}}
+        {{/if}}
+      </nav>
+    </div>
+    <div class="container"><div class="wave-separator"></div></div>
+  </header>
+
+  <div class="site-content">
+    <div class="container">
+      <main>
+        {{{body}}}
+      </main>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container site-footer-inner">
+      <span>{{#if @custom.footer_text}}{{@custom.footer_text}}{{else}}&copy; {{date format="YYYY"}} {{@site.title}}{{/if}}</span>
+      <span>Powered by <a href="https://ghost.org" target="_blank" rel="noopener">Ghost</a></span>
+    </div>
+  </footer>
+</div>
+
+{{ghost_foot}}
+<script src="{{asset "js/prose.js"}}"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{{!< default}}
+<main class="site-main">
+{{#post}}
+  <article class="post-full page {{post_class}}">
+    <header class="post-full-header">
+      {{#if title}}<h1 class="post-full-title">{{title}}</h1>{{/if}}
+    </header>
+    {{#if feature_image}}
+      <figure class="post-full-image">
+        <img src="{{img_url feature_image size="l"}}" alt="{{title}}" loading="lazy" decoding="async">
+      </figure>
+    {{/if}}
+    {{> "content"}}
+  </article>
+{{/post}}
+</main>

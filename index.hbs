@@ -1,0 +1,32 @@
+{{!< default}}
+<div class="section-container">
+  <header class="feed-header">
+    <h2 class="section-title">Writing</h2>
+    <h2><center><a href="/tag/longpost/">📖</> | <a href="/tag/katze/">🐈‍⬛</a> | <a href="/tag/pictures/">📷</a> | <a href="/tag/musique/">🎵</a> | <a href="/tag/notes/">📝</a></center></h2>
+  </header>
+  <div class="gh-feed">
+    {{#foreach posts}}
+      <article class="feed post {{post_class}}">
+        {{> "post-card"}}
+      </article>
+    {{else}}
+      <p style="color:var(--color-text-faint);padding:2rem 0;">Noch keine Artikel.</p>
+    {{/foreach}}
+  </div>
+  {{#if @site.members_enabled}}
+    <div class="subscription-wrapper">
+      <p class="subscribe-title">Subscribe, um bei neuen Artikeln benachrichtigt zu werden.</p>
+      <form class="form-wrapper" data-members-form>
+        <input class="auth-email" type="email" data-members-email placeholder="Deine E-Mail" required autocomplete="email">
+        <button class="button-primary" type="submit">Subscribe</button>
+      </form>
+    </div>
+  {{/if}}
+</div>
+{{#if pagination}}
+  <nav class="pagination">
+    {{#if pagination.prev}}<a href="{{page_url pagination.prev}}">&larr; Newer</a>{{else}}<span></span>{{/if}}
+    <span>Page {{pagination.page}} of {{pagination.pages}}</span>
+    {{#if pagination.next}}<a href="{{page_url pagination.next}}">Older &rarr;</a>{{else}}<span></span>{{/if}}
+  </nav>
+{{/if}}
