@@ -1,10 +1,10 @@
 {
-  "name": "prose_version_grei",
+  "name": "prose-version-v3",
   "description": "A clean text-focused microblog theme for Ghost 6",
   "version": "3.0.0",
   "engines": { "ghost": ">=6.0.0" },
   "license": "MIT",
-  "author": { "email": "hello@example.com" },
+  "author": { "email": "jan.montag@googlemail.com" },
   "config": {
     "posts_per_page": 20,
     "card_assets": true,
