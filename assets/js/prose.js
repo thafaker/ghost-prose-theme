@@ -1,111 +1,203 @@
+/* ============================================================
+   PROSE THEME — JavaScript
+   Ghost 6 | Text-focused Microblog
+   ============================================================ */
+
 (function () {
   'use strict';
 
-  function applyWidth() {
-    var m = document.querySelector('meta[name="prose-width"]');
-    if (m && m.content) document.documentElement.style.setProperty('--content-width', m.content);
-  }
+  /* ---------- 1. Reading Progress Bar ---------- */
+  function initProgressBar() {
+    const bar = document.getElementById('reading-progress');
+    if (!bar) return;
 
-  function initProgress() {
-    var bar = document.getElementById('reading-progress');
-    var post = document.querySelector('.post-content');
-    if (!bar || !post) return;
-    function update() {
-      var top = post.getBoundingClientRect().top + window.scrollY;
-      var pct = Math.min(Math.max(((window.scrollY - top) / post.offsetHeight) * 100, 0), 100);
+    const post = document.querySelector('.post-content');
+    if (!post) { bar.style.display = 'none'; return; }
+
+    function updateBar() {
+      const rect = post.getBoundingClientRect();
+      const postTop = rect.top + window.scrollY;
+      const postHeight = rect.height;
+      const scrolled = window.scrollY - postTop;
+      const pct = Math.min(Math.max((scrolled / postHeight) * 100, 0), 100);
       bar.style.width = pct + '%';
     }
-    window.addEventListener('scroll', update, { passive: true });
-    update();
+
+    window.addEventListener('scroll', updateBar, { passive: true });
+    updateBar();
   }
 
-  function initReadingTime() {
-    var content = document.querySelector('.post-content');
-    var targets = document.querySelectorAll('[data-reading-time]');
+  /* ---------- 2. Estimated Reading Time ---------- */
+  function calcReadingTime() {
+    const content = document.querySelector('.post-content');
+    const targets = document.querySelectorAll('[data-reading-time]');
     if (!content || !targets.length) return;
-    var words = content.innerText.trim().split(/\s+/).length;
-    var mins = Math.max(1, Math.round(words / 220));
-    var label = mins === 1 ? '1 min read' : mins + ' min read';
-    targets.forEach(function(el) { el.textContent = label; });
+
+    const words = content.innerText.trim().split(/\s+/).length;
+    const minutes = Math.max(1, Math.round(words / 220));
+    const label = minutes === 1 ? '1 min read' : minutes + ' min read';
+    targets.forEach(el => el.textContent = label);
   }
 
+  /* ---------- 3. Copy-Code Buttons ---------- */
   function initCopyButtons() {
-    document.querySelectorAll('.post-content pre').forEach(function(pre) {
-      var btn = document.createElement('button');
+    document.querySelectorAll('.post-content pre').forEach(pre => {
+      const btn = document.createElement('button');
       btn.className = 'copy-btn';
       btn.textContent = 'Copy';
+      btn.setAttribute('aria-label', 'Copy code');
+      pre.style.position = 'relative';
       pre.appendChild(btn);
-      btn.addEventListener('click', function() {
-        var code = pre.querySelector('code');
-        var text = (code ? code.innerText : pre.innerText).replace(/^Copy\n?/, '').trim();
-        navigator.clipboard.writeText(text).then(function() {
+
+      btn.addEventListener('click', () => {
+        const code = pre.querySelector('code');
+        const text = code ? code.innerText : pre.innerText.replace('Copy', '').trim();
+        navigator.clipboard.writeText(text).then(() => {
           btn.textContent = 'Copied!';
           btn.classList.add('copied');
-          setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+          setTimeout(() => {
+            btn.textContent = 'Copy';
+            btn.classList.remove('copied');
+          }, 2000);
+        }).catch(() => {
+          btn.textContent = 'Error';
+          setTimeout(() => btn.textContent = 'Copy', 2000);
         });
       });
     });
   }
 
+  /* ---------- 4. Fade-in animation for post cards ---------- */
   function initFadeIn() {
     if (!('IntersectionObserver' in window)) return;
-    var items = document.querySelectorAll('.feed');
-    var obs = new IntersectionObserver(function(entries) {
-      entries.forEach(function(e, i) {
-        if (e.isIntersecting) {
-          setTimeout(function() { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)'; }, i * 25);
-          obs.unobserve(e.target);
+
+    const cards = document.querySelectorAll('.post-card');
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.style.opacity = '1';
+            entry.target.style.transform = 'translateY(0)';
+          }, i * 40);
+          obs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.04 });
-    items.forEach(function(el) {
-      el.style.opacity = '0';
-      el.style.transform = 'translateY(8px)';
-      el.style.transition = 'opacity .3s ease, transform .3s ease';
-      obs.observe(el);
+    }, { threshold: 0.05 });
+
+    cards.forEach(card => {
+      card.style.opacity = '0';
+      card.style.transform = 'translateY(10px)';
+      card.style.transition = 'opacity .35s ease, transform .35s ease';
+      obs.observe(card);
     });
   }
 
-  function initBurger() {
-    var burger = document.querySelector('.gh-burger');
-    var menu = document.querySelector('.gh-head-menu');
-    if (!burger || !menu) return;
-    burger.textContent = '☰';
-    burger.addEventListener('click', function() { menu.classList.toggle('open'); });
-  }
-
-  function initStickyHeader() {
-    var head = document.querySelector('.gh-head');
-    if (!head) return;
-    window.addEventListener('scroll', function() {
-      head.style.boxShadow = window.scrollY > 10 ? '0 1px 10px rgba(0,0,0,.07)' : 'none';
-    }, { passive: true });
-  }
-
-  function initHeadingAnchors() {
-    var content = document.querySelector('.post-content');
+  /* ---------- 5. Smooth External Link Indicator ---------- */
+  function markExternalLinks() {
+    const content = document.querySelector('.post-content');
     if (!content) return;
-    content.querySelectorAll('h2, h3').forEach(function(h) {
-      if (!h.id) h.id = h.innerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-      var a = document.createElement('a');
-      a.href = '#' + h.id;
-      a.setAttribute('aria-hidden', 'true');
-      a.innerHTML = ' #';
-      Object.assign(a.style, { fontSize: '.7em', opacity: '0', color: 'var(--color-text-faint)', transition: 'opacity .15s', fontWeight: '400', textDecoration: 'none' });
-      h.appendChild(a);
-      h.addEventListener('mouseenter', function() { a.style.opacity = '1'; });
-      h.addEventListener('mouseleave', function() { a.style.opacity = '0'; });
+    content.querySelectorAll('a[href]').forEach(link => {
+      if (link.hostname && link.hostname !== window.location.hostname) {
+        link.setAttribute('target', '_blank');
+        link.setAttribute('rel', 'noopener noreferrer');
+        if (!link.querySelector('.ext-icon')) {
+          const span = document.createElement('span');
+          span.className = 'ext-icon';
+          span.innerHTML = ' ↗';
+          span.style.cssText = 'font-size:.7em;opacity:.5;';
+          link.appendChild(span);
+        }
+      }
     });
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    applyWidth();
-    initProgress();
-    initReadingTime();
+  /* ---------- 6. Footnote tooltip preview ---------- */
+  function initFootnotes() {
+    document.querySelectorAll('a[href^="#fn"]').forEach(link => {
+      link.addEventListener('mouseenter', () => {
+        const id = link.getAttribute('href').slice(1);
+        const fn = document.getElementById(id);
+        if (!fn) return;
+        const tip = document.createElement('div');
+        tip.className = 'fn-tip';
+        tip.textContent = fn.innerText.replace(/↩/g, '').trim();
+        Object.assign(tip.style, {
+          position: 'absolute',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          color: 'var(--text-muted)',
+          padding: '8px 12px',
+          borderRadius: '5px',
+          fontSize: '.75rem',
+          maxWidth: '280px',
+          lineHeight: '1.5',
+          boxShadow: 'var(--shadow-md)',
+          zIndex: '500',
+          pointerEvents: 'none',
+        });
+        document.body.appendChild(tip);
+        const rect = link.getBoundingClientRect();
+        tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
+        tip.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
+        link._fntip = tip;
+      });
+      link.addEventListener('mouseleave', () => {
+        if (link._fntip) { link._fntip.remove(); link._fntip = null; }
+      });
+    });
+  }
+
+  /* ---------- 7. Apply Content Width from Ghost Custom Setting ---------- */
+  function applyContentWidth() {
+    // Ghost injects custom settings as body data attributes or via a meta tag
+    // We read from the meta tag set in default.hbs
+    // Width is set inline in <head> to avoid layout shift.
+    // Keep meta support for backwards compatibility.
+    const meta = document.querySelector('meta[name="prose-width"], meta[name="prose-content-width"]');
+    if (meta) {
+      const w = meta.getAttribute('content');
+      if (w) document.documentElement.style.setProperty('--content-width', w);
+    }
+  }
+
+  /* ---------- 8. Heading Anchor Links ---------- */
+  function initHeadingAnchors() {
+    const content = document.querySelector('.post-content');
+    if (!content) return;
+    content.querySelectorAll('h2, h3').forEach(h => {
+      if (!h.id) {
+        h.id = h.innerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      }
+      const a = document.createElement('a');
+      a.href = '#' + h.id;
+      a.className = 'heading-anchor';
+      a.innerHTML = '#';
+      a.setAttribute('aria-hidden', 'true');
+      Object.assign(a.style, {
+        marginLeft: '8px',
+        opacity: '0',
+        fontSize: '.75em',
+        color: 'var(--text-faint)',
+        transition: 'opacity .15s',
+        fontWeight: '400',
+        textDecoration: 'none',
+      });
+      h.appendChild(a);
+      h.addEventListener('mouseenter', () => a.style.opacity = '1');
+      h.addEventListener('mouseleave', () => a.style.opacity = '0');
+    });
+  }
+
+  /* ---------- Init ---------- */
+  document.addEventListener('DOMContentLoaded', () => {
+    applyContentWidth();
+    initProgressBar();
+    calcReadingTime();
     initCopyButtons();
     initFadeIn();
-    initBurger();
-    initStickyHeader();
+    markExternalLinks();
+    initFootnotes();
     initHeadingAnchors();
   });
+
 })();

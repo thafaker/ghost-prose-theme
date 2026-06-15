@@ -7,11 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap">
+  {{! Set content width as early as possible to avoid layout shift }}
+  <style>
+    :root{--content-width:{{@custom.content_width}};}
+  </style>
+
   <link rel="stylesheet" href="{{asset "css/prose.css"}}">
   {{ghost_head}}
-  {{#match @custom.content_width "520px"}}<meta name="prose-width" content="520px">{{/match}}
-  {{#match @custom.content_width "640px"}}<meta name="prose-width" content="640px">{{/match}}
-  {{#match @custom.content_width "920px"}}<meta name="prose-width" content="920px">{{/match}}
+
+  {{! Keep meta for JS (optional) }}
+  <meta name="prose-width" content="{{@custom.content_width}}">
 </head>
 <body class="{{body_class}}">
 
