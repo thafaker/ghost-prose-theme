@@ -29,9 +29,9 @@
         <a class="gh-head-logo" href="{{@site.url}}">{{@site.title}}<br />Status</a>
         <button class="gh-burger" aria-label="Menu"></button>
       </div>
-    <div class="unknown">
+      <div class="unknown">
         <img class="rounded-avatar" src="/assets/img/avatar.jpg" alt="autor of this website">
-	</div>
+      </div>
       <nav class="gh-head-menu" aria-label="Navigation">
         {{navigation}}
         {{#if @site.members_enabled}}
@@ -54,13 +54,49 @@
 
   <footer class="site-footer">
     <div class="container site-footer-inner">
-      <span>{{#if @custom.footer_text}}{{@custom.footer_text}}{{else}}&copy; {{date format="YYYY"}} {{@site.title}}{{/if}}</span>
-      <span>Powered by <a href="https://ghost.org" target="_blank" rel="noopener">Ghost</a></span>
+
+      {{! Last.fm Widget }}
+      <div class="lastfm-widget is-loading" id="lastfm-widget">
+        <div class="lastfm-art-placeholder" id="lastfm-art-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+          </svg>
+        </div>
+        <div class="lastfm-info">
+          <div class="lastfm-label">
+            <span class="lastfm-pulse"></span>
+            <span id="lastfm-status">Wird geladen …</span>
+          </div>
+          <div class="lastfm-track" id="lastfm-track">—</div>
+          <div class="lastfm-meta" id="lastfm-meta">—</div>
+        </div>
+        <a class="lastfm-logo" href="https://www.last.fm/user/thafaker_de" target="_blank" rel="noopener" title="Last.fm Profil">
+          <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+            <path fill="currentColor" d="M28.3 43.1l-2.8-7.6s-4.6 5.1-11.4 5.1c-6.1 0-10.4-5.3-10.4-13.7
+              0-10.8 5.4-14.7 10.7-14.7 7.6 0 10 4.9 12.1 11.2l2.8 8.7c2.8 8.4 8 15.2 23.1 15.2
+              10.8 0 18.1-3.3 18.1-12 0-7-4-10.6-11.5-12.3l-5.5-1.2c-3.9-.9-5-2.4-5-5
+              0-2.9 2.3-4.7 6.1-4.7 4.1 0 6.3 1.5 6.6 5.2l8.4-1c-.7-7.6-5.9-10.7-14.6-10.7
+              -7.6 0-15 2.9-15 12.1 0 5.8 2.8 9.4 9.8 11.1l5.8 1.4c4.5 1.1 6.2 2.8 6.2 5.5
+              0 3.2-3.1 4.6-9.3 4.6-9 0-12.7-4.7-14.9-11.2l-2.8-8.7c-3.7-11.3-9.6-15.4-20.7-15.4
+              C5.9 4.9 0 12.6 0 27c0 13.8 7.1 20.9 18.7 20.9 9.6 0 14.5-4.8 14.5-4.8l-.9 4.1H42.2
+              L47 27.5c1.2-4.1 3.3-5.6 6.1-5.6 2.9 0 4.6 1.8 4.6 4.8 0 3.5-1.8 5-5.8 5
+              l-3.5.1 1.5 6.6 2.1-.1c8.7 0 13.5-4.5 13.5-11.8 0-6.8-3.8-11.2-11.2-11.2
+              -6.1 0-10.2 3.1-12 9.3l-5 17.5H28.3z"/>
+          </svg>
+        </a>
+      </div>
+
+      <div class="site-footer-copy">
+        <span>{{#if @custom.footer_text}}{{@custom.footer_text}}{{else}}&copy; {{date format="YYYY"}} {{@site.title}}{{/if}}</span>
+        <span>Powered by <a href="https://ghost.org" target="_blank" rel="noopener">Ghost</a></span>
+      </div>
+
     </div>
   </footer>
 </div>
 
 {{ghost_foot}}
 <script src="{{asset "js/prose.js"}}"></script>
+<script src="{{asset "js/lastfm.js"}}"></script>
 </body>
 </html>
