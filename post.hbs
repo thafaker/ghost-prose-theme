@@ -1,5 +1,6 @@
 {{!< default}}
 <main class="site-main">
+  <link rel="stylesheet" href="https://kommis.wochenstart.com/public/comments.css">
 {{#post}}
   <article class="post-full {{post_class}}">
     <header class="post-full-header">
@@ -33,6 +34,10 @@
         </div>
       </aside>
     {{/foreach}}
+    
+   <div id="comments"></div>
+   <script src="https://kommis.wochenstart.com/public/embed.js" defer></script>
+    
     {{#if prev}}
       <nav class="post-nav">
         <div class="post-nav-item">
