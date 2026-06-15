@@ -1,5 +1,5 @@
 /* ============================================================
-   PROSE THEME — JavaScript
+   PROSE THEME - JavaScript
    Ghost 6 | Text-focused Microblog
    ============================================================ */
 
@@ -12,7 +12,10 @@
     if (!bar) return;
 
     const post = document.querySelector('.post-content');
-    if (!post) { bar.style.display = 'none'; return; }
+    if (!post) {
+      bar.style.display = 'none';
+      return;
+    }
 
     function updateBar() {
       const rect = post.getBoundingClientRect();
@@ -36,7 +39,9 @@
     const words = content.innerText.trim().split(/\s+/).length;
     const minutes = Math.max(1, Math.round(words / 220));
     const label = minutes === 1 ? '1 min read' : minutes + ' min read';
-    targets.forEach(el => el.textContent = label);
+    targets.forEach(el => {
+      el.textContent = label;
+    });
   }
 
   /* ---------- 3. Copy-Code Buttons ---------- */
@@ -61,7 +66,9 @@
           }, 2000);
         }).catch(() => {
           btn.textContent = 'Error';
-          setTimeout(() => btn.textContent = 'Copy', 2000);
+          setTimeout(() => {
+            btn.textContent = 'Copy';
+          }, 2000);
         });
       });
     });
@@ -96,6 +103,7 @@
   function markExternalLinks() {
     const content = document.querySelector('.post-content');
     if (!content) return;
+
     content.querySelectorAll('a[href]').forEach(link => {
       if (link.hostname && link.hostname !== window.location.hostname) {
         link.setAttribute('target', '_blank');
@@ -118,6 +126,7 @@
         const id = link.getAttribute('href').slice(1);
         const fn = document.getElementById(id);
         if (!fn) return;
+
         const tip = document.createElement('div');
         tip.className = 'fn-tip';
         tip.textContent = fn.innerText.replace(/↩/g, '').trim();
@@ -133,16 +142,21 @@
           lineHeight: '1.5',
           boxShadow: 'var(--shadow-md)',
           zIndex: '500',
-          pointerEvents: 'none',
+          pointerEvents: 'none'
         });
         document.body.appendChild(tip);
+
         const rect = link.getBoundingClientRect();
         tip.style.top = (window.scrollY + rect.bottom + 6) + 'px';
         tip.style.left = Math.min(rect.left, window.innerWidth - 300) + 'px';
         link._fntip = tip;
       });
+
       link.addEventListener('mouseleave', () => {
-        if (link._fntip) { link._fntip.remove(); link._fntip = null; }
+        if (link._fntip) {
+          link._fntip.remove();
+          link._fntip = null;
+        }
       });
     });
   }
@@ -160,10 +174,12 @@
   function initHeadingAnchors() {
     const content = document.querySelector('.post-content');
     if (!content) return;
+
     content.querySelectorAll('h2, h3').forEach(h => {
       if (!h.id) {
         h.id = h.innerText.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
       }
+
       const a = document.createElement('a');
       a.href = '#' + h.id;
       a.className = 'heading-anchor';
@@ -176,11 +192,56 @@
         color: 'var(--text-faint)',
         transition: 'opacity .15s',
         fontWeight: '400',
-        textDecoration: 'none',
+        textDecoration: 'none'
       });
+
       h.appendChild(a);
-      h.addEventListener('mouseenter', () => a.style.opacity = '1');
-      h.addEventListener('mouseleave', () => a.style.opacity = '0');
+      h.addEventListener('mouseenter', () => {
+        a.style.opacity = '1';
+      });
+      h.addEventListener('mouseleave', () => {
+        a.style.opacity = '0';
+      });
+    });
+  }
+
+  /* ---------- 9. Burger Menu ---------- */
+  function initBurgerMenu() {
+    const burger = document.querySelector('.gh-burger');
+    const menu = document.querySelector('.gh-head-menu');
+    if (!burger || !menu) return;
+
+    burger.setAttribute('aria-expanded', 'false');
+    burger.setAttribute('aria-label', 'Menue oeffnen');
+    burger.innerHTML = '☰';
+
+    burger.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = menu.classList.toggle('open');
+      burger.setAttribute('aria-expanded', String(isOpen));
+      burger.setAttribute('aria-label', isOpen ? 'Menue schliessen' : 'Menue oeffnen');
+      burger.innerHTML = isOpen ? '✕' : '☰';
+    });
+
+    document.addEventListener('click', (e) => {
+      const insideMenu = menu.contains(e.target);
+      const insideBurger = burger.contains(e.target);
+      if (!insideMenu && !insideBurger) {
+        menu.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.setAttribute('aria-label', 'Menue oeffnen');
+        burger.innerHTML = '☰';
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      if (window.innerWidth > 700) {
+        menu.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+        burger.setAttribute('aria-label', 'Menue oeffnen');
+        burger.innerHTML = '☰';
+      }
     });
   }
 
@@ -192,19 +253,9 @@
     const supportsHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
     if (!supportsHover) return;
 
-    // -------------------------------------------------------------------
-    // Site-default detection
-    // Ghost always generates a twitter:image for every post, even when the
-    // post has no custom image — it falls back to the site logo/icon.
-    // We detect this by fetching the homepage ONCE and storing its
-    // twitter:image pathname. Posts with the same pathname → no preview.
-    // sessionStorage keeps this across paginated pages (?page=2, /tag/…)
-    // without repeating the fetch on every page load.
-    // -------------------------------------------------------------------
     const SESSION_KEY = 'prose_site_default_img_path';
-    let siteDefaultPath = sessionStorage.getItem(SESSION_KEY); // may be null on first visit
+    let siteDefaultPath = sessionStorage.getItem(SESSION_KEY);
 
-    // Fetch homepage in the background; result will be ready before any hover fires.
     if (siteDefaultPath === null) {
       fetch(window.location.origin + '/', { headers: { 'Accept': 'text/html' } })
         .then(r => r.text())
@@ -225,7 +276,7 @@
     }
 
     let abortCtrl = null;
-    const cache = new Map(); // url -> {img, title, date, tag}
+    const cache = new Map();
     let lastUrl = null;
 
     function setPos(x, y) {
@@ -236,7 +287,7 @@
       const maxY = window.innerHeight - h - pad;
       const px = Math.max(pad, Math.min(x + 16, maxX));
       const py = Math.max(pad, Math.min(y + 16, maxY));
-      preview.style.transform = `translate(${px}px, ${py}px)`;
+      preview.style.transform = 'translate(' + px + 'px, ' + py + 'px)';
     }
 
     function hide() {
@@ -252,19 +303,20 @@
     }
 
     function render(data) {
-      preview.innerHTML = `
-        <div class="hover-preview-card">
-          ${data.img
-            ? `<img class="hover-preview-img" src="${data.img}" alt="" loading="lazy" decoding="async">`
-            : `<div class="hover-preview-img" aria-hidden="true"></div>`}
-          <div class="hover-preview-body">
-            <div class="hover-preview-title">${escapeHtml(data.title)}</div>
-            <div class="hover-preview-meta">
-              ${data.tag  ? `<span class="hover-preview-pill">${escapeHtml(data.tag)}</span>` : ''}
-              ${data.date ? `<span>${escapeHtml(data.date)}</span>` : ''}
-            </div>
-          </div>
-        </div>`;
+      preview.innerHTML = [
+        '<div class="hover-preview-card">',
+          data.img
+            ? '<img class="hover-preview-img" src="' + data.img + '" alt="" loading="lazy" decoding="async">'
+            : '<div class="hover-preview-img" aria-hidden="true"></div>',
+          '<div class="hover-preview-body">',
+            '<div class="hover-preview-title">' + escapeHtml(data.title) + '</div>',
+            '<div class="hover-preview-meta">',
+              data.tag ? '<span class="hover-preview-pill">' + escapeHtml(data.tag) + '</span>' : '',
+              data.date ? '<span>' + escapeHtml(data.date) + '</span>' : '',
+            '</div>',
+          '</div>',
+        '</div>'
+      ].join('');
       preview.classList.add('is-visible');
       preview.setAttribute('aria-hidden', 'false');
     }
@@ -276,35 +328,33 @@
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
 
-      const res  = await fetch(url, { signal: abortCtrl.signal, headers: { 'Accept': 'text/html' } });
+      const res = await fetch(url, {
+        signal: abortCtrl.signal,
+        headers: { 'Accept': 'text/html' }
+      });
       const html = await res.text();
-      const doc  = new DOMParser().parseFromString(html, 'text/html');
+      const doc = new DOMParser().parseFromString(html, 'text/html');
 
-      // Read post's twitter:image
-      const img = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')
-                    ?.getAttribute('content') || '';
+      const img = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
 
-      // No image at all → no preview
       if (!img) {
         const empty = { img: '', title: '', tag: '', date: '' };
         cache.set(url, empty);
         return empty;
       }
 
-      // Compare pathname to site default (ignores host, works on localhost + prod)
       let imgPath = '';
-      try { imgPath = new URL(img, location.origin).pathname; } catch (_) {}
+      try {
+        imgPath = new URL(img, location.origin).pathname;
+      } catch (_) {}
 
-      // siteDefaultPath may still be null if the homepage fetch hasn't finished yet;
-      // treat null as "unknown" → allow preview (better than blocking everything).
       if (imgPath && siteDefaultPath !== null && imgPath === siteDefaultPath) {
         const empty = { img: '', title: '', tag: '', date: '' };
         cache.set(url, empty);
         return empty;
       }
 
-      const title = doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')
-                      ?.getAttribute('content') || '';
+      const title = doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute('content') || '';
 
       let tag = '';
       const tagEl = doc.querySelector('.post-full-tags a, a.post-full-tag');
@@ -335,17 +385,22 @@
       const url = rawUrl ? new URL(rawUrl, window.location.origin).toString() : null;
       if (!url) return;
 
-      // Same-card guard: just update position, no new fetch
-      if (url === lastUrl) { setPos(e.clientX, e.clientY); return; }
+      if (url === lastUrl) {
+        setPos(e.clientX, e.clientY);
+        return;
+      }
       lastUrl = url;
 
       setPos(e.clientX, e.clientY);
       try {
         const data = await fetchPostPreview(url);
-        if (!data || !data.img) { hide(); return; }
+        if (!data || !data.img) {
+          hide();
+          return;
+        }
 
         if (!data.title) {
-          const t = card.querySelector?.('.feed-title');
+          const t = card.querySelector('.feed-title');
           data.title = t ? t.textContent.trim() : '';
         }
 
@@ -372,7 +427,7 @@
     markExternalLinks();
     initFootnotes();
     initHeadingAnchors();
+    initBurgerMenu();
     initHoverPreview();
   });
-
 })();
