@@ -149,10 +149,6 @@
 
   /* ---------- 7. Apply Content Width from Ghost Custom Setting ---------- */
   function applyContentWidth() {
-    // Ghost injects custom settings as body data attributes or via a meta tag
-    // We read from the meta tag set in default.hbs
-    // Width is set inline in <head> to avoid layout shift.
-    // Keep meta support for backwards compatibility.
     const meta = document.querySelector('meta[name="prose-width"], meta[name="prose-content-width"]');
     if (meta) {
       const w = meta.getAttribute('content');
@@ -196,8 +192,41 @@
     const supportsHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
     if (!supportsHover) return;
 
+    // -------------------------------------------------------------------
+    // Site-default detection
+    // Ghost always generates a twitter:image for every post, even when the
+    // post has no custom image — it falls back to the site logo/icon.
+    // We detect this by fetching the homepage ONCE and storing its
+    // twitter:image pathname. Posts with the same pathname → no preview.
+    // sessionStorage keeps this across paginated pages (?page=2, /tag/…)
+    // without repeating the fetch on every page load.
+    // -------------------------------------------------------------------
+    const SESSION_KEY = 'prose_site_default_img_path';
+    let siteDefaultPath = sessionStorage.getItem(SESSION_KEY); // may be null on first visit
+
+    // Fetch homepage in the background; result will be ready before any hover fires.
+    if (siteDefaultPath === null) {
+      fetch(window.location.origin + '/', { headers: { 'Accept': 'text/html' } })
+        .then(r => r.text())
+        .then(html => {
+          const d = new DOMParser().parseFromString(html, 'text/html');
+          const imgUrl = d.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
+          try {
+            siteDefaultPath = imgUrl ? new URL(imgUrl, location.origin).pathname : '';
+          } catch (_) {
+            siteDefaultPath = '';
+          }
+          sessionStorage.setItem(SESSION_KEY, siteDefaultPath);
+        })
+        .catch(() => {
+          siteDefaultPath = '';
+          sessionStorage.setItem(SESSION_KEY, '');
+        });
+    }
+
     let abortCtrl = null;
     const cache = new Map(); // url -> {img, title, date, tag}
+    let lastUrl = null;
 
     function setPos(x, y) {
       const pad = 14;
@@ -225,11 +254,13 @@
     function render(data) {
       preview.innerHTML = `
         <div class="hover-preview-card">
-          ${data.img ? `<img class="hover-preview-img" src="${data.img}" alt="" loading="lazy" decoding="async">` : `<div class="hover-preview-img" aria-hidden="true"></div>`}
+          ${data.img
+            ? `<img class="hover-preview-img" src="${data.img}" alt="" loading="lazy" decoding="async">`
+            : `<div class="hover-preview-img" aria-hidden="true"></div>`}
           <div class="hover-preview-body">
             <div class="hover-preview-title">${escapeHtml(data.title)}</div>
             <div class="hover-preview-meta">
-              ${data.tag ? `<span class="hover-preview-pill">${escapeHtml(data.tag)}</span>` : ''}
+              ${data.tag  ? `<span class="hover-preview-pill">${escapeHtml(data.tag)}</span>` : ''}
               ${data.date ? `<span>${escapeHtml(data.date)}</span>` : ''}
             </div>
           </div>
@@ -245,19 +276,35 @@
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
 
-      const res = await fetch(url, {
-        signal: abortCtrl.signal,
-        headers: { 'Accept': 'text/html' },
-      });
+      const res  = await fetch(url, { signal: abortCtrl.signal, headers: { 'Accept': 'text/html' } });
       const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const doc  = new DOMParser().parseFromString(html, 'text/html');
 
-      // Prefer twitter:image for hover preview (explicit social card), fallback to og:image
-      const twImg = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
-      const ogImg = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
-      const img = twImg || ogImg;
+      // Read post's twitter:image
+      const img = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')
+                    ?.getAttribute('content') || '';
 
-      const title = (doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute('content')) || '';
+      // No image at all → no preview
+      if (!img) {
+        const empty = { img: '', title: '', tag: '', date: '' };
+        cache.set(url, empty);
+        return empty;
+      }
+
+      // Compare pathname to site default (ignores host, works on localhost + prod)
+      let imgPath = '';
+      try { imgPath = new URL(img, location.origin).pathname; } catch (_) {}
+
+      // siteDefaultPath may still be null if the homepage fetch hasn't finished yet;
+      // treat null as "unknown" → allow preview (better than blocking everything).
+      if (imgPath && siteDefaultPath !== null && imgPath === siteDefaultPath) {
+        const empty = { img: '', title: '', tag: '', date: '' };
+        cache.set(url, empty);
+        return empty;
+      }
+
+      const title = doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')
+                      ?.getAttribute('content') || '';
 
       let tag = '';
       const tagEl = doc.querySelector('.post-full-tags a, a.post-full-tag');
@@ -280,21 +327,22 @@
       const card = e.target.closest('.feed') || e.target.closest('.feed-inner');
       if (!card) return;
 
-      // Only enable preview for posts tagged "picture" or "pictures"
-      // Ghost adds classes like "tag-picture" / "tag-pictures" via {{post_class}}
-      const tagGateEl = card.classList.contains('feed') ? card : card.closest('.feed');
-      const isPictureTagged = !!tagGateEl && (tagGateEl.classList.contains('tag-picture') || tagGateEl.classList.contains('tag-pictures'));
-      if (!isPictureTagged) return;
-
-      const url =
+      const rawUrl =
         card.querySelector?.('a.u-permalink')?.getAttribute('href') ||
         card.getAttribute?.('data-url') ||
         null;
 
+      const url = rawUrl ? new URL(rawUrl, window.location.origin).toString() : null;
+      if (!url) return;
+
+      // Same-card guard: just update position, no new fetch
+      if (url === lastUrl) { setPos(e.clientX, e.clientY); return; }
+      lastUrl = url;
+
       setPos(e.clientX, e.clientY);
       try {
         const data = await fetchPostPreview(url);
-        if (!data) return;
+        if (!data || !data.img) { hide(); return; }
 
         if (!data.title) {
           const t = card.querySelector?.('.feed-title');
@@ -302,8 +350,8 @@
         }
 
         render(data);
-      } catch (err) {
-        // keep silent in production
+      } catch (_) {
+        // silently ignore aborts / network errors
       }
     });
 
