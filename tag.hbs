@@ -14,6 +14,8 @@
     <article class="feed post {{post_class}}">{{> "post-card"}}</article>
   {{/foreach}}
 </div>
+
+<div id="hover-preview" class="hover-preview" aria-hidden="true"></div>
 {{#if pagination}}
   <nav class="pagination">
     {{#if pagination.prev}}<a href="{{page_url pagination.prev}}">&larr; Newer</a>{{else}}<span></span>{{/if}}
