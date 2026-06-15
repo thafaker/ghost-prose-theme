@@ -2,7 +2,7 @@
 <div class="section-container">
   <header class="feed-header">
     <h2 class="section-title">Writing</h2>
-    <h2><center><a href="/tag/longpost/">📖</> | <a href="/tag/katze/">🐈‍⬛</a> | <a href="/tag/linux/">⌨️</a> | <a href="/tag/unterwegs/">🧳</a> | <a href="/tag/pictures/">📷</a> | <a href="/tag/musique/">🎵</a> | <a href="/tag/rennrad/">🚲</a> | <a href="/tag/notes/">📝</a></center></h2>
+        <h2><center><a href="/tag/longpost/">📖</> | <a href="/tag/katze/">🐈‍⬛</a> | <a href="/tag/linux/">⌨️</a> | <a href="/tag/unterwegs/">🧳</a> | <a href="/tag/pictures/">📷</a> | <a href="/tag/musique/">🎵</a> | <a href="/tag/rennrad/">🚲</a> | <a href="/tag/notes/">📝</a></center></h2>
   </header>
   <div class="gh-feed">
     {{#foreach posts}}
@@ -13,9 +13,12 @@
       <p style="color:var(--color-text-faint);padding:2rem 0;">Noch keine Artikel.</p>
     {{/foreach}}
   </div>
+
+
+  <div id="hover-preview" class="hover-preview" aria-hidden="true"></div>
   {{#if @site.members_enabled}}
     <div class="subscription-wrapper">
-      <p class="subscribe-title">Abonieren, um bei neuen Artikeln benachrichtigt zu werden.</p>
+      <p class="subscribe-title">Subscribe, um bei neuen Artikeln benachrichtigt zu werden.</p>
       <form class="form-wrapper" data-members-form>
         <input class="auth-email" type="email" data-members-email placeholder="Deine E-Mail" required autocomplete="email">
         <button class="button-primary" type="submit">Subscribe</button>

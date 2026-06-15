@@ -188,6 +188,132 @@
     });
   }
 
+  /* ---------- 10. Hover preview (lazy-load image) ---------- */
+  function initHoverPreview() {
+    const preview = document.getElementById('hover-preview');
+    if (!preview) return;
+
+    const supportsHover = window.matchMedia && window.matchMedia('(hover: hover)').matches;
+    if (!supportsHover) return;
+
+    let abortCtrl = null;
+    const cache = new Map(); // url -> {img, title, date, tag}
+
+    function setPos(x, y) {
+      const pad = 14;
+      const w = 270;
+      const h = 240;
+      const maxX = window.innerWidth - w - pad;
+      const maxY = window.innerHeight - h - pad;
+      const px = Math.max(pad, Math.min(x + 16, maxX));
+      const py = Math.max(pad, Math.min(y + 16, maxY));
+      preview.style.transform = `translate(${px}px, ${py}px)`;
+    }
+
+    function hide() {
+      preview.classList.remove('is-visible');
+      preview.setAttribute('aria-hidden', 'true');
+      preview.style.transform = 'translate(-9999px,-9999px)';
+      if (abortCtrl) abortCtrl.abort();
+      abortCtrl = null;
+    }
+
+    function escapeHtml(s) {
+      return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function render(data) {
+      preview.innerHTML = `
+        <div class="hover-preview-card">
+          ${data.img ? `<img class="hover-preview-img" src="${data.img}" alt="" loading="lazy" decoding="async">` : `<div class="hover-preview-img" aria-hidden="true"></div>`}
+          <div class="hover-preview-body">
+            <div class="hover-preview-title">${escapeHtml(data.title)}</div>
+            <div class="hover-preview-meta">
+              ${data.tag ? `<span class="hover-preview-pill">${escapeHtml(data.tag)}</span>` : ''}
+              ${data.date ? `<span>${escapeHtml(data.date)}</span>` : ''}
+            </div>
+          </div>
+        </div>`;
+      preview.classList.add('is-visible');
+      preview.setAttribute('aria-hidden', 'false');
+    }
+
+    async function fetchPostPreview(url) {
+      if (!url) return null;
+      if (cache.has(url)) return cache.get(url);
+
+      if (abortCtrl) abortCtrl.abort();
+      abortCtrl = new AbortController();
+
+      const res = await fetch(url, {
+        signal: abortCtrl.signal,
+        headers: { 'Accept': 'text/html' },
+      });
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+
+      // Prefer twitter:image for hover preview (explicit social card), fallback to og:image
+      const twImg = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
+      const ogImg = doc.querySelector('meta[property="og:image"]')?.getAttribute('content') || '';
+      const img = twImg || ogImg;
+
+      const title = (doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute('content')) || '';
+
+      let tag = '';
+      const tagEl = doc.querySelector('.post-full-tags a, a.post-full-tag');
+      if (tagEl) tag = (tagEl.textContent || '').trim();
+
+      let date = '';
+      const time = doc.querySelector('time[datetime]');
+      if (time) date = (time.textContent || '').trim();
+
+      const data = { img, title, tag, date };
+      cache.set(url, data);
+      return data;
+    }
+
+    document.addEventListener('mousemove', (e) => {
+      if (preview.classList.contains('is-visible')) setPos(e.clientX, e.clientY);
+    }, { passive: true });
+
+    document.addEventListener('mouseover', async (e) => {
+      const card = e.target.closest('.feed') || e.target.closest('.feed-inner');
+      if (!card) return;
+
+      // Only enable preview for posts tagged "picture" or "pictures"
+      // Ghost adds classes like "tag-picture" / "tag-pictures" via {{post_class}}
+      const tagGateEl = card.classList.contains('feed') ? card : card.closest('.feed');
+      const isPictureTagged = !!tagGateEl && (tagGateEl.classList.contains('tag-picture') || tagGateEl.classList.contains('tag-pictures'));
+      if (!isPictureTagged) return;
+
+      const url =
+        card.querySelector?.('a.u-permalink')?.getAttribute('href') ||
+        card.getAttribute?.('data-url') ||
+        null;
+
+      setPos(e.clientX, e.clientY);
+      try {
+        const data = await fetchPostPreview(url);
+        if (!data) return;
+
+        if (!data.title) {
+          const t = card.querySelector?.('.feed-title');
+          data.title = t ? t.textContent.trim() : '';
+        }
+
+        render(data);
+      } catch (err) {
+        // keep silent in production
+      }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      const card = e.target.closest('.feed') || e.target.closest('.feed-inner');
+      if (!card) return;
+      hide();
+    });
+  }
+
   /* ---------- Init ---------- */
   document.addEventListener('DOMContentLoaded', () => {
     applyContentWidth();
@@ -198,6 +324,7 @@
     markExternalLinks();
     initFootnotes();
     initHeadingAnchors();
+    initHoverPreview();
   });
 
 })();
