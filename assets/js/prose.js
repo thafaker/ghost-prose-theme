@@ -498,15 +498,22 @@
      *   - Spotify URL + oEmbed metadata  (new)
      * Results are cached per URL.
      */
-    async function fetchPostPreview(url) {
+    async function fetchPostPreview(url, background = false) {
       if (!url) return null;
       if (cache.has(url)) return cache.get(url);
 
-      if (abortCtrl) abortCtrl.abort();
-      abortCtrl = new AbortController();
-      const signal = abortCtrl.signal;
+      // Background prefetch: use a dedicated controller so it never
+      // cancels an in-flight hover fetch (abortCtrl is only for hover).
+      let signal;
+      if (background) {
+        signal = new AbortController().signal;
+      } else {
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = new AbortController();
+        signal = abortCtrl.signal;
+      }
 
-      const res = await fetch(url, { signal, headers: { 'Accept': 'text/html' } });
+      const res = await fetch(url, { signal, priority: background ? 'low' : 'auto', headers: { 'Accept': 'text/html' } });
       const html = await res.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
 
@@ -567,7 +574,71 @@
       return base;
     }
 
-    /* ---- Event listeners (unchanged from original) ---- */
+    /* ---- Background prefetch (Viewport-based cache warming) ----
+     *
+     * Fires only when all three conditions are met:
+     *   1. The page has fully loaded (window 'load' event) — no competition
+     *      with critical resources during initial page paint.
+     *   2. The browser reports idle time via requestIdleCallback — the work
+     *      is scheduled opportunistically and won't block the main thread.
+     *   3. The user is not on a metered / slow connection (saveData or 2G) —
+     *      respects data-conscious users and avoids PageSpeed penalties on
+     *      simulated mobile profiles.
+     *
+     * For every .feed card that enters the viewport an IntersectionObserver
+     * silently calls fetchPostPreview() in the background. By the time the
+     * user hovers, the result is already in the cache and the card appears
+     * instantly.
+     */
+    function startPrefetchObserver() {
+      // Guard: skip on metered or very slow connections
+      const conn = navigator.connection;
+      if (conn && (conn.saveData || conn.effectiveType === '2g')) return;
+
+      if (!('IntersectionObserver' in window)) return;
+
+      const prefetchObs = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (!entry.isIntersecting) return;
+
+          const card = entry.target;
+          const rawUrl =
+            card.querySelector('a.u-permalink')?.getAttribute('href') ||
+            card.getAttribute('data-url') ||
+            null;
+          if (!rawUrl) return;
+
+          let url;
+          try { url = new URL(rawUrl, window.location.origin).toString(); } catch (_) { return; }
+
+          // Already cached — nothing to do
+          if (cache.has(url)) return;
+
+          // Fire-and-forget: fetch in background with low priority
+          fetchPostPreview(url, /* background */ true).catch(() => {});
+
+          // Unobserve immediately — one prefetch per card is enough
+          prefetchObs.unobserve(card);
+        });
+      }, {
+        rootMargin: '0px',  // only truly visible cards, not speculative ones below fold
+        threshold: 0.1
+      });
+
+      document.querySelectorAll('.feed').forEach(card => prefetchObs.observe(card));
+    }
+
+    // Schedule prefetch warmup: after load + idle, never during page paint
+    window.addEventListener('load', () => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(startPrefetchObserver, { timeout: 3000 });
+      } else {
+        // Fallback for Safari < 18: wait 2 s after load
+        setTimeout(startPrefetchObserver, 2000);
+      }
+    });
+
+    /* ---- Event listeners ---- */
 
     document.addEventListener('mousemove', (e) => {
       if (preview.classList.contains('is-visible')) setPos(e.clientX, e.clientY);
