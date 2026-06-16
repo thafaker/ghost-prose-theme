@@ -22,14 +22,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-dot-icon lucide-dot"><circle cx="12.1" cy="12.1" r="1"/></svg>
 {{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}{{/has}}
 	</span>
-    <h2 class="body-1 feed-title">{{title}}{{#unless title}}{{excerpt words="20"}}{{/unless}}</h2>
-    {{#if title}}{{#if excerpt}}<div class="feed-excerpt">{{excerpt words="20"}}</div>{{/if}}{{/if}}
+    <h2 class="body-1 feed-title">{{title}}</h2>
+    {{#if custom_excerpt}}<div class="feed-excerpt">{{custom_excerpt}}</div>{{/if}}
     <div class="dot-spacer"></div>
     <div class="feed-right">
       <time class="feed-calendar" datetime="{{date format="YYYY-MM-DD"}}">{{date format="MMM 'YY"}}</time>
       <div class="feed-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" aria-hidden="true"><path d="M5.333 14.667v2.667h16L14 24.667l1.893 1.893L26.453 16 15.893 5.44 14 7.333l7.333 7.333h-16z"/></svg></div>
     </div>
   </div>
-  {{#if excerpt}}<div class="feed-sub">{{excerpt words="22"}}</div>{{/if}}
-  <a class="u-permalink" href="{{url}}" aria-label="{{title}}{{#unless title}}Read post{{/unless}}"></a>
+  {{#if excerpt}}<div class="feed-sub">{{excerpt words="40"}}</div>{{/if}}
+  <a class="u-permalink" href="{{url}}" aria-label="{{title}}"></a>
 </article>
