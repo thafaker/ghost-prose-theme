@@ -245,7 +245,7 @@
     });
   }
 
-  /* ---------- 10. Hover preview (lazy-load image) ---------- */
+  /* ---------- 10. Hover preview (lazy-load image + multimedia) ---------- */
   function initHoverPreview() {
     const preview = document.getElementById('hover-preview');
     if (!preview) return;
@@ -302,12 +302,109 @@
       return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    function render(data) {
+    /* ---- Multimedia helpers ---- */
+
+    /**
+     * Detects multimedia embeds and links within a fetched post document.
+     *
+     * Returns an object: { youtubeId, spotifyUrl } — either value may be null.
+     *
+     * Detection strategy:
+     *   Scope is intentionally limited to the post content area
+     *   (.post-content, .gh-content) so that <link rel="me">, footer links,
+     *   and other out-of-content Spotify/YouTube references in <head> or
+     *   sidebars are never mistaken for embedded media.
+     *
+     *   Within that scope, iframes (= real Ghost embed blocks) are checked
+     *   BEFORE plain links for both services, and Spotify iframes are checked
+     *   BEFORE YouTube iframes — so an embedded Spotify track always wins over
+     *   a YouTube link that merely appears in the same paragraph.
+     *
+     *   Full priority order:
+     *     1. Spotify  iframe[src]   — Ghost embed block
+     *     2. YouTube  iframe[src]   — Ghost embed block
+     *     3. Spotify  a[href]       — plain link inside post text
+     *     4. YouTube  a[href]       — plain link inside post text
+     */
+    function extractMedia(doc) {
+      const YT_RE = /(?:youtube\.com\/(?:watch\?(?:[^"]*&)?v=|embed\/|v\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+      const SP_RE = /open\.spotify\.com\/(?:embed\/)?(track|album|playlist|episode|show)\/([A-Za-z0-9]+)/;
+
+      // Limit search to the post content element only.
+      // Falls back to <body> if the selector isn't present (shouldn't happen).
+      const scope = doc.querySelector('.post-content, .gh-content') || doc.body;
+
+      let youtubeId = null;
+      let spotifyUrl = null;
+
+      // --- Pass 1: iframes (real embeds) ---
+      for (const iframe of scope.querySelectorAll('iframe[src]')) {
+        const src = iframe.getAttribute('src') || '';
+
+        if (!spotifyUrl) {
+          const m = src.match(SP_RE);
+          if (m) spotifyUrl = 'https://open.spotify.com/' + m[1] + '/' + m[2];
+        }
+
+        if (!youtubeId) {
+          const m = src.match(YT_RE);
+          if (m) youtubeId = m[1];
+        }
+
+        // Both found in iframes — no need to check links
+        if (spotifyUrl && youtubeId) return { youtubeId, spotifyUrl };
+      }
+
+      // --- Pass 2: plain links — only for whatever wasn't found via iframe ---
+      for (const link of scope.querySelectorAll('a[href]')) {
+        const href = link.getAttribute('href') || '';
+
+        if (!spotifyUrl) {
+          const m = href.match(SP_RE);
+          if (m) spotifyUrl = 'https://open.spotify.com/' + m[1] + '/' + m[2];
+        }
+
+        if (!youtubeId) {
+          const m = href.match(YT_RE);
+          if (m) youtubeId = m[1];
+        }
+
+        if (spotifyUrl && youtubeId) break; // found both, stop early
+      }
+
+      return { youtubeId, spotifyUrl };
+    }
+
+    /**
+     * Fetches Spotify track/album/playlist metadata via the public oEmbed
+     * endpoint – no API key required.
+     * Returns { title, author } or null on failure.
+     */
+    async function fetchSpotifyMeta(spotifyUrl, signal) {
+      try {
+        const oembed = 'https://open.spotify.com/oembed?url=' + encodeURIComponent(spotifyUrl);
+        const res = await fetch(oembed, { signal, headers: { 'Accept': 'application/json' } });
+        if (!res.ok) return null;
+        const json = await res.json();
+        return {
+          title: json.title || '',
+          author: json.provider_name || 'Spotify',
+          thumbnail: json.thumbnail_url || ''
+        };
+      } catch (_) {
+        return null;
+      }
+    }
+
+    /* ---- Render helpers ---- */
+
+    /**
+     * Renders the standard image card (existing behaviour).
+     */
+    function renderImage(data) {
       preview.innerHTML = [
         '<div class="hover-preview-card">',
-          data.img
-            ? '<img class="hover-preview-img" src="' + data.img + '" alt="" loading="lazy" decoding="async">'
-            : '<div class="hover-preview-img" aria-hidden="true"></div>',
+          '<img class="hover-preview-img" src="' + data.img + '" alt="" loading="lazy" decoding="async">',
           '<div class="hover-preview-body">',
             '<div class="hover-preview-title">' + escapeHtml(data.title) + '</div>',
             '<div class="hover-preview-meta">',
@@ -317,43 +414,103 @@
           '</div>',
         '</div>'
       ].join('');
+    }
+
+    /**
+     * Renders a YouTube preview card with thumbnail + play button overlay.
+     * The thumbnail is fetched from YouTube's public image CDN – no API key needed.
+     */
+    function renderYouTube(data) {
+      const thumbUrl = 'https://img.youtube.com/vi/' + data.youtubeId + '/hqdefault.jpg';
+      preview.innerHTML = [
+        '<div class="hover-preview-card hover-preview-card--youtube">',
+          '<div class="hover-preview-media-wrap">',
+            '<img class="hover-preview-img" src="' + thumbUrl + '" alt="" loading="lazy" decoding="async">',
+            '<div class="hover-preview-play" aria-hidden="true">',
+              // YouTube-style play triangle
+              '<svg viewBox="0 0 68 48" xmlns="http://www.w3.org/2000/svg">',
+                '<rect width="68" height="48" rx="10" fill="rgba(0,0,0,.55)"/>',
+                '<polygon points="26,14 26,34 46,24" fill="#fff"/>',
+              '</svg>',
+            '</div>',
+          '</div>',
+          '<div class="hover-preview-body">',
+            '<div class="hover-preview-badge hover-preview-badge--yt">▶ YouTube</div>',
+            '<div class="hover-preview-title">' + escapeHtml(data.title) + '</div>',
+            '<div class="hover-preview-meta">',
+              data.tag ? '<span class="hover-preview-pill">' + escapeHtml(data.tag) + '</span>' : '',
+              data.date ? '<span>' + escapeHtml(data.date) + '</span>' : '',
+            '</div>',
+          '</div>',
+        '</div>'
+      ].join('');
+    }
+
+    /**
+     * Renders a Spotify preview card with album art (if available) and track info.
+     */
+    function renderSpotify(data) {
+      const artHtml = data.spotifyThumbnail
+        ? '<img class="hover-preview-img hover-preview-img--spotify" src="' + escapeHtml(data.spotifyThumbnail) + '" alt="" loading="lazy" decoding="async">'
+        : '<div class="hover-preview-img hover-preview-img--spotify hover-preview-img--placeholder" aria-hidden="true">'
+          + '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 0 1-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 1 1-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.623.623 0 0 1 .207.857zm1.223-2.722a.78.78 0 0 1-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 0 1-.454-1.49c3.632-1.104 8.147-.569 11.234 1.327a.78.78 0 0 1 .257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 1 1-.543-1.793c3.532-1.072 9.404-.865 13.115 1.338a.937.937 0 0 1-.955 1.612z"/></svg>'
+          + '</div>';
+
+      preview.innerHTML = [
+        '<div class="hover-preview-card hover-preview-card--spotify">',
+          artHtml,
+          '<div class="hover-preview-body">',
+            '<div class="hover-preview-badge hover-preview-badge--spotify">♫ Spotify</div>',
+            data.spotifyTrack
+              ? '<div class="hover-preview-title">' + escapeHtml(data.spotifyTrack) + '</div>'
+              : '<div class="hover-preview-title">' + escapeHtml(data.title) + '</div>',
+            '<div class="hover-preview-meta">',
+              data.tag ? '<span class="hover-preview-pill">' + escapeHtml(data.tag) + '</span>' : '',
+              data.date ? '<span>' + escapeHtml(data.date) + '</span>' : '',
+            '</div>',
+          '</div>',
+        '</div>'
+      ].join('');
+    }
+
+    /**
+     * Unified render dispatcher – decides which card type to show.
+     * Priority: image > youtube > spotify
+     */
+    function render(data) {
+      if (data.img) {
+        renderImage(data);
+      } else if (data.youtubeId) {
+        renderYouTube(data);
+      } else if (data.spotifyUrl) {
+        renderSpotify(data);
+      } else {
+        return; // nothing to show
+      }
       preview.classList.add('is-visible');
       preview.setAttribute('aria-hidden', 'false');
     }
 
+    /**
+     * Fetches a post page and extracts:
+     *   - twitter:image  (existing)
+     *   - YouTube video ID  (new)
+     *   - Spotify URL + oEmbed metadata  (new)
+     * Results are cached per URL.
+     */
     async function fetchPostPreview(url) {
       if (!url) return null;
       if (cache.has(url)) return cache.get(url);
 
       if (abortCtrl) abortCtrl.abort();
       abortCtrl = new AbortController();
+      const signal = abortCtrl.signal;
 
-      const res = await fetch(url, {
-        signal: abortCtrl.signal,
-        headers: { 'Accept': 'text/html' }
-      });
+      const res = await fetch(url, { signal, headers: { 'Accept': 'text/html' } });
       const html = await res.text();
       const doc = new DOMParser().parseFromString(html, 'text/html');
 
-      const img = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
-
-      if (!img) {
-        const empty = { img: '', title: '', tag: '', date: '' };
-        cache.set(url, empty);
-        return empty;
-      }
-
-      let imgPath = '';
-      try {
-        imgPath = new URL(img, location.origin).pathname;
-      } catch (_) {}
-
-      if (imgPath && siteDefaultPath !== null && imgPath === siteDefaultPath) {
-        const empty = { img: '', title: '', tag: '', date: '' };
-        cache.set(url, empty);
-        return empty;
-      }
-
+      // --- Shared metadata (title, tag, date) ---
       const title = doc.querySelector('meta[property="og:title"], meta[name="twitter:title"]')?.getAttribute('content') || '';
 
       let tag = '';
@@ -364,10 +521,53 @@
       const time = doc.querySelector('time[datetime]');
       if (time) date = (time.textContent || '').trim();
 
-      const data = { img, title, tag, date };
-      cache.set(url, data);
-      return data;
+      const base = { title, tag, date, img: '', youtubeId: null, spotifyUrl: null, spotifyTrack: '', spotifyThumbnail: '' };
+
+      // --- 1. Check twitter:image (existing logic) ---
+      const imgMeta = doc.querySelector('meta[name="twitter:image"], meta[name="twitter:image:src"]')?.getAttribute('content') || '';
+      if (imgMeta) {
+        let imgPath = '';
+        try { imgPath = new URL(imgMeta, location.origin).pathname; } catch (_) {}
+
+        // Only use image if it's not the site-wide default placeholder
+        if (!imgPath || siteDefaultPath === null || imgPath !== siteDefaultPath) {
+          base.img = imgMeta;
+          cache.set(url, base);
+          return base;
+        }
+      }
+
+      // --- 2. Check for YouTube embed / link, and Spotify embed / link ---
+      // extractMedia() scopes its search to .post-content / .gh-content only,
+      // so <link rel="me" href="https://open.spotify.com/..."> in <head> and
+      // other out-of-content references are ignored.
+      // Priority: Spotify iframe > YouTube iframe > Spotify link > YouTube link.
+      const { youtubeId, spotifyUrl } = extractMedia(doc);
+
+      if (youtubeId && !spotifyUrl) {
+        base.youtubeId = youtubeId;
+        cache.set(url, base);
+        return base;
+      }
+
+      if (spotifyUrl) {
+        base.spotifyUrl = spotifyUrl;
+        // Fetch oEmbed metadata for track/album name + art
+        const meta = await fetchSpotifyMeta(spotifyUrl, signal);
+        if (meta) {
+          base.spotifyTrack = meta.title;
+          base.spotifyThumbnail = meta.thumbnail;
+        }
+        cache.set(url, base);
+        return base;
+      }
+
+      // Nothing found – cache the empty result to avoid repeated fetches
+      cache.set(url, base);
+      return base;
     }
+
+    /* ---- Event listeners (unchanged from original) ---- */
 
     document.addEventListener('mousemove', (e) => {
       if (preview.classList.contains('is-visible')) setPos(e.clientX, e.clientY);
@@ -394,11 +594,12 @@
       setPos(e.clientX, e.clientY);
       try {
         const data = await fetchPostPreview(url);
-        if (!data || !data.img) {
+        if (!data || (!data.img && !data.youtubeId && !data.spotifyUrl)) {
           hide();
           return;
         }
 
+        // Fallback: use card title if og:title was empty
         if (!data.title) {
           const t = card.querySelector('.feed-title');
           data.title = t ? t.textContent.trim() : '';
