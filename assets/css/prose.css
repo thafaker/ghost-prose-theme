@@ -290,8 +290,27 @@ a { color: inherit; text-decoration: none; transition: color var(--tr); }
 
 .u-permalink { position: absolute; inset: 0; z-index: 1; border-radius: 10px; }
 
-.feed-wrapper { display: flex; align-items: baseline; gap: 8px; width: 100%; min-width: 0; }
-.feed-emoji { font-size: .95rem; line-height: 1.5; flex-shrink: 0; width: 1.5rem; text-align: center; transition: transform var(--tr); }
+.feed-wrapper{
+  display:flex;
+  align-items:center;     /* statt baseline */
+  gap:10px;
+  width:100%;
+  min-width:0;
+}
+.feed-emoji{
+  width:1.5rem;
+  height:1.5rem;          /* neue fixe Höhe */
+  display:flex;           /* statt nur font-size/line-height */
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  line-height:1;          /* wichtig gegen „springende“ Zeilenhöhe */
+}
+.feed-emoji svg{
+  display:block;
+  width:1.15rem;
+  height:1.15rem;
+}
 .feed:hover .feed-emoji { transform: scale(1.18); }
 .feed-title { font-size: 1.0rem; font-weight: 600; color: var(--color-text); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 1; min-width: 0; transition: color var(--tr); }
 .feed:hover .feed-title { color: var(--color-accent); }
