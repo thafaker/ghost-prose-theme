@@ -765,3 +765,20 @@ a { color: inherit; text-decoration: none; transition: color var(--tr); }
   opacity: 1;
   transform: translateY(-50%) scale(1);
 }
+
+/* Wurstgesicht - vergrößere Youtube-Embeds auf Themebreit */
+/* Responsive video embeds in Ghost content */
+.gh-content iframe[src*="youtube.com"],
+.gh-content iframe[src*="youtu.be"],
+.gh-content iframe[src*="youtube-nocookie.com"],
+.gh-content iframe[src*="vimeo.com"],
+.gh-content iframe[src*="player.vimeo.com"]{
+  width: 100% !important;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  height: auto !important;
+  display: block;
+  margin: 1.25rem auto;
+  border: 0;
+  border-radius: 12px; /* optional, passt zu deinem Look */
+}
