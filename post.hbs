@@ -6,7 +6,7 @@
     <header class="post-full-header">
       {{#if tags}}
         <div class="post-full-tags">
-          {{#foreach tags}}<a class="post-hfull-tag" href="{{url}}">{{name}}</a>{{/foreach}}
+          {{#foreach tags}}<a class="post-full-tag" href="{{url}}">{{name}}</a>{{/foreach}}
         </div>
       {{/if}}
       {{#if title}}<h1 class="post-full-title">{{title}}</h1>{{/if}}
@@ -17,13 +17,16 @@
         <span data-reading-time="true"></span>
       </div>
     </header>
+
     {{#if feature_image}}
       <figure class="post-full-image">
         <img src="{{img_url feature_image size="l"}}" srcset="{{img_url feature_image size="m"}} 720w, {{img_url feature_image size="l"}} 1200w" sizes="(max-width:680px) 100vw, 640px" alt="{{#if feature_image_alt}}{{feature_image_alt}}{{else}}{{title}}{{/if}}" loading="lazy" decoding="async">
         {{#if feature_image_caption}}<figcaption>{{feature_image_caption}}</figcaption>{{/if}}
       </figure>
     {{/if}}
+
     {{> "content"}}
+
     {{#foreach authors}}
       <aside class="author-box">
         {{#if profile_image}}<img class="author-box-avatar" src="{{img_url profile_image size="xs"}}" alt="{{name}}" loading="lazy">{{else}}<div class="author-box-placeholder">✍</div>{{/if}}
@@ -34,27 +37,36 @@
         </div>
       </aside>
     {{/foreach}}
-    
-   <div id="comments"></div>
-   <script src="https://kommis.wochenstart.com/public/embed.js" defer></script>
+
+    <div id="comments"></div>
+    <script src="https://kommis.wochenstart.com/public/embed.js" defer></script>
+
+    {{!-- Webmentions --}}
     <section class="wm" aria-labelledby="wm-title">
-  <header class="wm__head">
-    <h2 id="wm-title" class="wm__title">Webmentions</h2>
-    <p class="wm__hint">
-      Reaktionen aus dem IndieWeb (Replies, Likes, Reposts).
-    </p>
-  </header>
+      <header class="wm__head">
+        <h2 id="wm-title" class="wm__title">Webmentions</h2>
+        <p class="wm__hint">Reaktionen aus dem IndieWeb (Replies, Likes, Reposts).</p>
+      </header>
 
-  <div class="wm__summary" id="wm-summary" hidden></div>
+      <div class="wm__summary" id="wm-summary" hidden></div>
 
-  <ol class="wm__list" id="wm-list" aria-live="polite">
-    <li class="wm__loading" id="wm-loading">Lade Webmentions …</li>
-  </ol>
+      <ol class="wm__list" id="wm-list" aria-live="polite">
+        <li class="wm__loading" id="wm-loading">Lade Webmentions …</li>
+      </ol>
 
-  <p class="wm__empty" id="wm-empty" hidden>Noch keine Webmentions.</p>
-</section>
+      <p class="wm__empty" id="wm-empty" hidden>Noch keine Webmentions.</p>
+    </section>
 
-    
+    {{!-- Webmentions config for JS --}}
+    <script>
+      window.__wm = {
+        target: document.querySelector('link[rel="canonical"]')?.href || location.href,
+        domain: 'status.herrmontag.de',
+        perPage: 50
+      };
+    </script>
+    <script src="{{asset "js/webmentions.js"}}" defer></script>
+
     {{#if prev}}
       <nav class="post-nav">
         <div class="post-nav-item">
@@ -79,17 +91,7 @@
         </nav>
       {{/if}}
     {{/if}}
+
   </article>
 {{/post}}
 </main>
-<script>
-  window.__wm = {
-    // canonical URL des aktuellen Posts (Ghost setzt canonical sauber)
-    target: document.querySelector('link[rel="canonical"]')?.href || location.href,
-    // deine Domain für den Webmention.io API-Call
-    domain: 'status.herrmontag.de',
-    // optional: max items
-    perPage: 50
-  };
-</script>
-<script src="{{asset "js/webmentions.js"}}" defer></script>
