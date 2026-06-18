@@ -782,3 +782,99 @@ a { color: inherit; text-decoration: none; transition: color var(--tr); }
   border: 0;
   border-radius: 12px; /* optional, passt zu deinem Look */
 }
+
+/* Uberblogr Webring stylen */
+.webring{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+
+  background: color-mix(in srgb, var(--color-card-bg) 82%, transparent);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 0 0 1px rgba(0,0,0,.03);
+  
+}
+
+@media (prefers-color-scheme: dark){
+  .webring{
+    box-shadow: 0 1px 3px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04);
+  }
+}
+
+.webring__home{
+  font-size: .74rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+  border-radius: 999px;
+  transition: color var(--tr), background var(--tr);
+}
+
+.webring__home:hover{
+  color: var(--color-text);
+  background: var(--color-tag-bg);
+}
+
+/* Pfeil-Buttons links/rechts */
+.webring__btn{
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-card-bg);
+
+  color: var(--color-text);
+  font-weight: 800;
+  line-height: 1;
+
+  transition: transform .16s ease, border-color var(--tr), background var(--tr), box-shadow var(--tr), color var(--tr);
+}
+
+.webring__btn:hover{
+  transform: translateY(-1px);
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+  box-shadow: 0 6px 16px rgba(0,0,0,.08);
+  color: var(--color-accent);
+}
+
+@media (prefers-color-scheme: dark){
+  .webring__btn:hover{
+    box-shadow: 0 8px 20px rgba(0,0,0,.45);
+  }
+}
+
+.webring__btn:focus-visible,
+.webring__home:focus-visible{
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.site-footer .webring{
+  margin-top: 6px;
+}
+
+.webring-row{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+}
+
+@media (max-width: 360px){
+  .webring{
+    gap: 8px;
+    padding: 7px 8px;
+  }
+  .webring__home{
+    font-size: .72rem;
+  }
+}
