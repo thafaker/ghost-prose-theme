@@ -6,7 +6,7 @@
     <header class="post-full-header">
       {{#if tags}}
         <div class="post-full-tags">
-          {{#foreach tags}}<a class="post-full-tag" href="{{url}}">{{name}}</a>{{/foreach}}
+          {{#foreach tags}}<a class="post-hfull-tag" href="{{url}}">{{name}}</a>{{/foreach}}
         </div>
       {{/if}}
       {{#if title}}<h1 class="post-full-title">{{title}}</h1>{{/if}}
@@ -37,6 +37,23 @@
     
    <div id="comments"></div>
    <script src="https://kommis.wochenstart.com/public/embed.js" defer></script>
+    <section class="wm" aria-labelledby="wm-title">
+  <header class="wm__head">
+    <h2 id="wm-title" class="wm__title">Webmentions</h2>
+    <p class="wm__hint">
+      Reaktionen aus dem IndieWeb (Replies, Likes, Reposts).
+    </p>
+  </header>
+
+  <div class="wm__summary" id="wm-summary" hidden></div>
+
+  <ol class="wm__list" id="wm-list" aria-live="polite">
+    <li class="wm__loading" id="wm-loading">Lade Webmentions …</li>
+  </ol>
+
+  <p class="wm__empty" id="wm-empty" hidden>Noch keine Webmentions.</p>
+</section>
+
     
     {{#if prev}}
       <nav class="post-nav">
@@ -65,3 +82,14 @@
   </article>
 {{/post}}
 </main>
+<script>
+  window.__wm = {
+    // canonical URL des aktuellen Posts (Ghost setzt canonical sauber)
+    target: document.querySelector('link[rel="canonical"]')?.href || location.href,
+    // deine Domain für den Webmention.io API-Call
+    domain: 'status.herrmontag.de',
+    // optional: max items
+    perPage: 50
+  };
+</script>
+<script src="{{asset "js/webmentions.js"}}" defer></script>
