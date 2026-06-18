@@ -1126,3 +1126,94 @@ a { color: inherit; text-decoration: none; transition: color var(--tr); }
 .kg-bookmark-card.kg-card-hascaption > figcaption p {
   margin: 0;                /* Ghost packt ein <p> rein; default margins können komisch wirken */
 }
+/* ============================================================
+   KG BOOKMARK CARD — Dark mode: stop the “white cards”
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  /* Der <figure>-Wrapper */
+  .post-content .kg-bookmark-card {
+    background: #151515; /* bewusst etwas über deinem --color-card-bg */
+    border-color: hsla(48,15%,93%,0.10);
+    box-shadow: 0 10px 28px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04);
+  }
+
+  /* Der klickbare Container */
+  .post-content .kg-bookmark-card .kg-bookmark-container {
+    background: transparent;
+  }
+
+  /* Linke Textfläche */
+  .post-content .kg-bookmark-card .kg-bookmark-content {
+    background: transparent;
+  }
+
+  .post-content .kg-bookmark-card .kg-bookmark-title {
+    color: hsla(48,15%,93%,0.92);
+  }
+
+  .post-content .kg-bookmark-card .kg-bookmark-description {
+    color: hsla(48,15%,93%,0.62);
+  }
+
+  .post-content .kg-bookmark-card .kg-bookmark-metadata {
+    color: hsla(48,15%,93%,0.50);
+  }
+
+  .post-content .kg-bookmark-card .kg-bookmark-author {
+    color: hsla(48,15%,93%,0.70);
+  }
+
+  /* Thumbnail-Bereich: ebenfalls dunkel “rahmen”, damit helle Thumbs nicht blenden */
+  .post-content .kg-bookmark-card .kg-bookmark-thumbnail {
+    background: #101010;
+    border-left: 1px solid hsla(48,15%,93%,0.08);
+  }
+
+  .post-content .kg-bookmark-card .kg-bookmark-thumbnail img {
+    background: #101010;
+  }
+
+  /* Favicon/Icon: kleines dunkles Plättchen */
+  .post-content .kg-bookmark-card .kg-bookmark-icon {
+    background: #101010;
+    border: 1px solid hsla(48,15%,93%,0.10);
+    border-radius: 6px;
+  }
+
+  /* Caption unter der Karte */
+  .post-content .kg-bookmark-card.kg-card-hascaption > figcaption {
+    color: hsla(48,15%,93%,0.45);
+  }
+
+  /* Hover: minimal heller umranden */
+  .post-content .kg-bookmark-card:hover {
+    border-color: hsla(48,15%,93%,0.18);
+  }
+}
+.post-content .kg-bookmark-card { background: #111; }
+/* ============================================================
+   KG BOOKMARK CARD — Dark mode hover fix (stops “flash white”)
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  /* Manche Styles hängen am figure:hover ... */
+  .post-content .kg-bookmark-card:hover {
+    background: #151515 !important;
+  }
+
+  /* ... andere am Link (a:hover) */
+  .post-content .kg-bookmark-card .kg-bookmark-container:hover {
+    background: transparent !important;
+  }
+
+  /* ... und manchmal werden Child-Flächen beim Hover aufgehellt */
+  .post-content .kg-bookmark-card:hover .kg-bookmark-content,
+  .post-content .kg-bookmark-card:hover .kg-bookmark-thumbnail {
+    background: transparent !important;
+  }
+
+  /* Falls irgendwo ein “filter/brightness” auf hover greift */
+  .post-content .kg-bookmark-card:hover,
+  .post-content .kg-bookmark-card:hover * {
+    filter: none !important;
+  }
+}
